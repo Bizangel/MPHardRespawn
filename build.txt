@@ -1,0 +1,3 @@
+displayName = Hard Multiplayer Respawn
+author = Arcanzu
+version = 0.1
