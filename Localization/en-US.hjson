@@ -1,0 +1,7 @@
+Mods: {
+	MPHardRespawn: {
+		HelperDisplayDeath: {
+			MyDeath: Death Text
+		}
+	}
+}

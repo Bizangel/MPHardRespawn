@@ -12,12 +12,16 @@ using Terraria.UI;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 
+using System.Reflection;
+
 namespace MPHardRespawn
 {
 	class MPHardRespawnModSystem : ModSystem
 	{
 		public Player[] activePlayers = null;
-		public bool playerCalled = false;
+		public bool accidentalDC = false;
+		public bool SaveAndQuitDC = false;
+		public List<string> bossFighters = null;
 
 		public static bool IsBossActive() {
 			// Returns True if a boss is active. Does not include mini-bosses. Does not include event-bossess.
@@ -34,42 +38,79 @@ namespace MPHardRespawn
 			return false;
 		}
 
-		public void onClientConnect() { // Called when a new client reports as connected.
-			
+        public override void Load()
+        {
+			bossFighters = new List<string>();
 		}
 
-        public override void PostUpdateEverything()
-        {
-			if (Main.netMode == NetmodeID.Server) {
-				
-				if (Main.GameUpdateCount % 30u == 0) 
+		public override void Unload()
+		{
+			bossFighters = null;
+		}
+
+		public void PeriodicBossCheck(){
+			bool isBossCurrentlyActive = IsBossActive();
+			if (isBossCurrentlyActive && bossFighters.Count == 0)
+			{ // switched to boss
+				for (int j = 0; j < 256; j++)
 				{
+					if (Main.player[j].active)
+					{
+						bossFighters.Add(Main.player[j].name);
+					}
+				}
+            }
 
-                    string activeplayers = "";
-                    for (int j = 0; j < 256; j++)
-                    {
-                        if (Main.player[j].active)
-                        {
-                            activeplayers += Main.player[j].name + " | ";
-                        }
-                    }
-                    //ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral("Called: " + playerCalled), Color.White);
-                    ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral("Active players: " + activeplayers), Color.White);
-                }
-
-				
+			if (!isBossCurrentlyActive) {
+				// boss has ended.
+				if (bossFighters.Count != 0) {
+					bossFighters.Clear();
+				}
 			}
 
+			if (isBossCurrentlyActive) {  // if boss is active. check that all players. are valid, else kill them.
+				for (int j = 0; j < 256; j++)
+				{
+					if (Main.player[j].active)
+					{
+						if (!bossFighters.Contains(Main.player[j].name)) {  // if not there, kill the player.
+							ModPacket myPacket = ModContent.GetInstance<MPHardRespawn>().GetPacket();
+							myPacket.Write((byte)0); //kill packet
+							myPacket.Send(j);
+						};
+					}
+				}
+			}
+		}
+        public override void PostUpdateEverything()
+        {
+            if (Main.netMode == NetmodeID.Server)
+            {
 
-			if (JustPressed(Keys.Z))
+                if (Main.GameUpdateCount % 30u == 0)
+                {
+					PeriodicBossCheck();
+				}
+            }
+
+            if (JustPressed(Keys.Z))
 				TestMethod();
+		}
 
+		public LocalizedText GetLocalizedTextFromLiteral(string text) {
+			LocalizedText mytext = LocalizedText.Empty;
+			PropertyInfo property = typeof(LocalizedText).GetProperty("Value");
+			property = property.DeclaringType.GetProperty("Value");
+			property.SetValue(mytext, text, BindingFlags.NonPublic | BindingFlags.Instance, null, null, null);
+			return mytext;
 		}
 
 		public void TestMethod() {
-			Main.NewText("Is boss active?: " + IsBossActive());
-			
-		}
+			LocalizedText text = GetLocalizedTextFromLiteral("YOU DIED");
+            Lang.inter[38] = mytext;
+			//string test3 = LanguageManager.Instance.GetTextValue("LegacyInterface.38");
+			Main.NewText(Lang.inter[38]);
+        }
 
         public static bool JustPressed(Keys key)
 		{
