@@ -1,1 +1,2 @@
-Hard Multiplayer Respawn is a pretty cool mod, it does...this. Modify this file with a description of your mod.
+Makes Multiplayer actually challenging. Disallows respawning during boss fights. 
+Can only respawn once boss fight is over. Intented to be used alongside MPSpectate mod, to spectate while dead.
