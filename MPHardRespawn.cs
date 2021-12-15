@@ -15,8 +15,6 @@ namespace MPHardRespawn
 
         public override void Load()
         {
-            //CreateTranslation;
-            
         }
         public override void HandlePacket(BinaryReader reader, int whoAmI)
         {

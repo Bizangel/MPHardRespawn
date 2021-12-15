@@ -12,7 +12,7 @@ using Terraria.UI;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 
-using System.Reflection;
+
 
 namespace MPHardRespawn
 {
@@ -22,6 +22,7 @@ namespace MPHardRespawn
 		public bool accidentalDC = false;
 		public bool SaveAndQuitDC = false;
 		public List<string> bossFighters = null;
+		public List<int> bossFighters_Indexes = null;
 
 		public static bool IsBossActive() {
 			// Returns True if a boss is active. Does not include mini-bosses. Does not include event-bossess.
@@ -38,18 +39,27 @@ namespace MPHardRespawn
 			return false;
 		}
 
-        public override void Load()
-        {
+		public override void Load()
+		{
 			bossFighters = new List<string>();
+			bossFighters_Indexes = new List<int>();
 		}
 
 		public override void Unload()
 		{
 			bossFighters = null;
+			bossFighters_Indexes = null;
 		}
 
-		public void PeriodicBossCheck(){
-			bool isBossCurrentlyActive = IsBossActive();
+		public void PeriodicBossCheck() {
+            //string text = "BossFighters: ";
+            //foreach (string player in bossFighters)
+            //{
+            //    text += player + " | ";
+            //}
+            //ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral(text), Color.White);
+
+            bool isBossCurrentlyActive = IsBossActive();
 			if (isBossCurrentlyActive && bossFighters.Count == 0)
 			{ // switched to boss
 				for (int j = 0; j < 256; j++)
@@ -57,20 +67,34 @@ namespace MPHardRespawn
 					if (Main.player[j].active)
 					{
 						bossFighters.Add(Main.player[j].name);
+						bossFighters_Indexes.Add(j);
 					}
 				}
-            }
+			}
 
 			if (!isBossCurrentlyActive) {
 				// boss has ended.
 				if (bossFighters.Count != 0) {
 					bossFighters.Clear();
+					bossFighters_Indexes.Clear();
 				}
 			}
 
 			if (isBossCurrentlyActive) {  // if boss is active. check that all players. are valid, else kill them.
+				// check for dced players
+				foreach (int playerIndex in bossFighters_Indexes)
+				{
+					if (!Main.player[playerIndex].active)
+					{
+						int foundIndex = bossFighters_Indexes.IndexOf(playerIndex);
+						bossFighters.RemoveAt(foundIndex); // he dced remove from list.
+						bossFighters_Indexes.RemoveAt(foundIndex); // he dced remove from list.
+					}
+				}
+
 				for (int j = 0; j < 256; j++)
 				{
+					// check that each player is active.
 					if (Main.player[j].active)
 					{
 						if (!bossFighters.Contains(Main.player[j].name)) {  // if not there, kill the player.
@@ -82,35 +106,21 @@ namespace MPHardRespawn
 				}
 			}
 		}
-        public override void PostUpdateEverything()
-        {
-            if (Main.netMode == NetmodeID.Server)
-            {
+		public override void PostUpdateEverything()
+		{
+			if (Main.netMode == NetmodeID.Server)
+			{
 
-                if (Main.GameUpdateCount % 30u == 0)
-                {
+				if (Main.GameUpdateCount % 30u == 0)
+				{
 					PeriodicBossCheck();
 				}
-            }
-
-            if (JustPressed(Keys.Z))
-				TestMethod();
-		}
-
-		public LocalizedText GetLocalizedTextFromLiteral(string text) {
-			LocalizedText mytext = LocalizedText.Empty;
-			PropertyInfo property = typeof(LocalizedText).GetProperty("Value");
-			property = property.DeclaringType.GetProperty("Value");
-			property.SetValue(mytext, text, BindingFlags.NonPublic | BindingFlags.Instance, null, null, null);
-			return mytext;
+			}
 		}
 
 		public void TestMethod() {
-			LocalizedText text = GetLocalizedTextFromLiteral("YOU DIED");
-            Lang.inter[38] = mytext;
-			//string test3 = LanguageManager.Instance.GetTextValue("LegacyInterface.38");
-			Main.NewText(Lang.inter[38]);
-        }
+			
+		}
 
         public static bool JustPressed(Keys key)
 		{
